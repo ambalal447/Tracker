@@ -1,0 +1,33 @@
+name: Fetch NSE Insider Trading Data
+
+on:
+  schedule:
+    - cron: "0 12 * * *"   # 12:00 UTC = 5:30 PM IST, daily
+  workflow_dispatch: {}     # lets you trigger it manually from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - run: python insider_trading_tracker.py
+        env:
+          NSE_SYMBOL: ${{ vars.NSE_SYMBOL }}   # optional repo variable, e.g. RELIANCE
+
+      - name: Commit new data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet || git commit -m "Update insider trading data: $(date -u +'%Y-%m-%d')"
+          git push
